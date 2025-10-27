@@ -11,7 +11,7 @@ reserved = {
     'end': 'END',
     'integer': 'INTEGER',
     'boolean': 'BOOLEAN',
-    'false': 'FALSE ',
+    'false': 'FALSE',
     'true': 'TRUE', 
     'while': 'WHILE',
     'do': 'DO',
@@ -55,18 +55,6 @@ def t_ATRIB(t):
     r':='
     return t
 
-def t_IGUAL(t):
-    r'='
-    return t
-
-def t_MENOR(t):
-    r'<'
-    return t
-
-def t_MAIOR(t):
-    r'>'
-    return t
-
 # Identificadores válidos + palavras reservadas
 def t_ID(t):
     r'[a-zA-Z][a-zA-Z0-9_]*'
@@ -96,10 +84,18 @@ def t_error(t):
 def make_lexer():
     return lex.lex()
 
-# Para testar o lexer sozinho: python3 lexer.py exemplo.ras
+# Para testar o lexer sozinho: python scanner.py lexico01.ras
 if __name__ == '__main__':
-    data = sys.stdin.read()
+    if len(sys.argv) < 2:
+        print("Uso: python scanner.py <arquivo>")
+        sys.exit(1)
+
+    filename = sys.argv[1]
+    with open(filename, 'r', encoding='utf-8') as f:
+        data = f.read()
+
     lexer = make_lexer()
     lexer.input(data)
+
     for tok in lexer:
         print(f'<{tok.type}, {tok.value!r}> na linha: {tok.lineno}')
