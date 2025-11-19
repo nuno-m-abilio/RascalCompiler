@@ -1,0 +1,7 @@
+iniciar Calculadin: 
+	input(a);
+	input(b);
+	123result = .5 ^ a + 10. * b;
+	b + 2 / 5;
+	output(result);
+finalizar calculadin. 

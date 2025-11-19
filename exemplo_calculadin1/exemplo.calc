@@ -1,0 +1,6 @@
+iniciar calculadin: 
+	input(a);
+	input(b);
+	result = a + b;
+	output(result);
+finalizar calculadin. 
