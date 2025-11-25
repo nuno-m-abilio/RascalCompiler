@@ -86,9 +86,11 @@ def t_error(t):
     else:
         print(f"Erro léxico do tipo caractere não reconhecido ({t.value[0]!r}) na linha {t.lineno}")
     
+    t.lexer.tem_erro = True
     t.lexer.skip(1)
 
 def make_lexer():
+    lexer.tem_erro = False
     return lex.lex()
 
 # Para testar o lexer sozinho: python scanner.py lexico01.ras

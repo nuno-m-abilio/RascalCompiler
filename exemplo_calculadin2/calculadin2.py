@@ -1,7 +1,7 @@
 import sys
 from lexer_cldin2 import make_lexer
 from parser_cldin2 import make_parser
-from sem_cldin import VerificadorSemantico
+from sem_cldin_v0 import VerificadorSemantico
 from printer_cldin2 import ImpressoraAST 
 # from codegen_cldin2 import GeradorCodigoMEPA
 

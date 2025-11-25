@@ -1,7 +1,7 @@
 import sys
 from dataclasses import dataclass
 import ply.yacc as yacc
-from lexer import tokens, make_lexer
+from lexer_rascal import tokens, make_lexer
 
 # ============================================================================
 # CLASSES PARA A AST (Abstract Syntax Tree) - VERSÃO SIMPLIFICADA
