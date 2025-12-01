@@ -1,24 +1,25 @@
 import sys
+from pprint import pprint
 from lexer_cldin2 import make_lexer
 from parser_cldin2 import make_parser
-from sem_cldin_v0 import VerificadorSemantico
-from printer_cldin2 import ImpressoraAST 
-# from codegen_cldin2 import GeradorCodigoMEPA
+from sem_cldin2 import VerificadorSemantico
+from printer_cldin2 import ImpressoraAST
+from codegen_cldin2 import GeradorDeCodigo
 
 def imprimir_modo_uso():
-    print("Modo de uso: python calculadin2.py <flag> < arquivo_entrada", file=sys.stderr)
+    print("Modo de uso: python3 calculadin2.py <flag> < arquivo_entrada", file=sys.stderr)
     print("Flags:", file=sys.stderr)
     print("  -l : Executa apenas a análise léxica.", file=sys.stderr)
     print("  -p : Executa as análises léxica e sintática.", file=sys.stderr)
+    print("  -pp : Executa as análises léxica e sintática e imprime e AST (se não houver erros).", file=sys.stderr)
     print("  -s : Executa as análises léxica, sintática e semântica.", file=sys.stderr)
-    print("  -sp: Executa a análise semântica e imprime a AST (se não houver erros).", file=sys.stderr)
-    print("  -g : Executa o pipeline completo e gera o código MEPA.", file=sys.stderr)
+    print("  -g : Executa o pipeline completo e gera o código.", file=sys.stderr)
 
 def main():
     
     if len(sys.argv) != 2:
         imprimir_modo_uso()
-        sys.exit(1)
+        sys.exit(0)
         
     flag = sys.argv[1]
     
@@ -40,62 +41,62 @@ def main():
                 break
         
         if lexer.tem_erro:
-            print("ERRO: Erros léxicos encontrados.", file=sys.stderr)
-            sys.exit(1)
+            sys.exit(0)
         else:
-            print("SUCESSO: Análise léxica concluída.")
+            print("SUCESSO: Análise léxica concluída.", file=sys.stderr)
         return 
 
     # Analisador sintático
     parser = make_parser() 
-    ast_root = parser.parse(data, lexer=lexer)
+    raiz_ast = parser.parse(data, lexer=lexer)
 
     if parser.tem_erro or lexer.tem_erro:
-        print("ERRO: Erros léxicos ou sintáticos encontrados.", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(0)
     
     # Execução para -p
     if flag == '-p':
-        print("SUCESSO: Análises léxica e sintática concluídas.")
+        print("SUCESSO: Análises léxica e sintática concluídas.", file=sys.stderr)
         return 
     
-    # Analisador semântico (ainda não existe)
-    # verificador = VerificadorSemantico()
-    # verificador.visita(ast_root) 
+    # Execução para -pp
+    if flag == '-pp':
+        print("SUCESSO: Análises léxica e sintática concluídas.", file=sys.stderr)
+        print("\n--- AST ---")
+        impressora = ImpressoraAST()
+        impressora.visita(raiz_ast)
+        return
+
+    # Analisador semântico
+    verificador = VerificadorSemantico()
+    verificador.visita(raiz_ast) 
     
-    # if verificador.tem_erro:
-    #     print("ERRO: Erros semânticos encontrados:", file=sys.stderr)
-    #     for erro in verificador.erros:
-    #         print(f"- {erro}", file=sys.stderr)
-    #     sys.exit(1)
+    if verificador.tem_erro:
+        print("Erros semânticos:", file=sys.stderr)
+        for erro in verificador.erros:
+            print(f"- {erro}", file=sys.stderr)
+        sys.exit(0)
     
     # Execução para -s
-    # if flag == '-s':
-    #     print("SUCESSO: Análises léxica, sintática e semântica concluídas.")
-    #     return 
+    if flag == '-s':
+        print("SUCESSO: Análises léxica, sintática e semântica concluídas.", file=sys.stderr)
+        return 
 
-    # Execução para -sp (imprime a AST - ainda não existe)
-    # if flag == '-sp':
-    #     print("SUCESSO: Análises léxica, sintática e semântica concluídas.")
-    #     print("\n--- AST Anotada ---")
-    #     impressora = ImpressoraAST()
-    #     impressora.visita(ast_root)
-    #     return 
+    # Execução para -g
+    if flag == '-g':
+        # Gerador de código
+        gerador = GeradorDeCodigo()
+        gerador.visita(raiz_ast)
 
-    # Execução para -g (gera código MEPA - ainda não existe) 
-    # if flag == '-g':
-    #     gerador = GeradorCodigoMEPA()
-    #     gerador.visita(ast_root)
-
-    #     if gerador.tem_erro:
-    #         print("ERRO: Erros de geração encontrados:", file=sys.stderr)
-    #         for erro in gerador.erros:
-    #             print(f"- {erro}", file=sys.stderr)
-    #         sys.exit(1)
-    
-    #     for instrucao in gerador.codigo:
-    #         print(instrucao)
-    #     return 
+        if gerador.tem_erro:
+            print("ERRO DE GERAÇÃO:", file=sys.stderr)
+            for erro in gerador.erros:
+                print(f"- {erro}", file=sys.stderr)
+            sys.exit(0)
+        
+        for instrucao in gerador.codigo:
+            print(instrucao, file=sys.stdout)
+        print("SUCESSO: Geração de código concluída.", file=sys.stderr)
+        return 
 
     # Flag inválida
     print(f"ERRO: Flag '{flag}' desconhecida.", file=sys.stderr)

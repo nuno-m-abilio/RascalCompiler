@@ -90,21 +90,22 @@ def t_error(t):
     t.lexer.skip(1)
 
 def make_lexer():
+    lexer = lex.lex()
     lexer.tem_erro = False
-    return lex.lex()
+    return lexer
 
-# Para testar o lexer sozinho: python scanner.py lexico01.ras
-if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print("Uso: python scanner.py <arquivo>")
-        sys.exit(1)
+# # Para testar o lexer sozinho: python scanner.py lexico01.ras
+# if __name__ == '__main__':
+#     if len(sys.argv) < 2:
+#         print("Uso: python scanner.py <arquivo>")
+#         sys.exit(1)
 
-    filename = sys.argv[1]
-    with open(filename, 'r', encoding='utf-8') as f:
-        data = f.read()
+#     filename = sys.argv[1]
+#     with open(filename, 'r', encoding='utf-8') as f:
+#         data = f.read()
 
-    lexer = make_lexer()
-    lexer.input(data)
+#     lexer = make_lexer()
+#     lexer.input(data)
 
-    for tok in lexer:
-        print(f'<{tok.type}, {tok.value!r}> na linha: {tok.lineno}')
+#     for tok in lexer:
+#         print(f'<{tok.type}, {tok.value!r}> na linha: {tok.lineno}')

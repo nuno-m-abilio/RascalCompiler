@@ -2,11 +2,11 @@ import sys
 
 # Importa o analisador léxico que você já tem
 from lexer_rascal import make_lexer
+from parser_rascal import make_parser
+from printer_rascal import ImpressoraAST
 
 # --- IMPORTAÇÕES FUTURAS (Descomente à medida que implementar) ---
-# from parser_rascal import make_parser
-# from sem_rascal import VerificadorSemantico
-# from printer_rascal import ImpressoraAST 
+# from sem_rascal import VerificadorSemantico 
 # from codegen_rascal import GeradorCodigoMEPA
 
 def imprimir_modo_uso():
@@ -15,8 +15,8 @@ def imprimir_modo_uso():
     print("Flags disponíveis:", file=sys.stderr)
     print("  -l : Executa apenas a análise léxica (scanner).", file=sys.stderr)
     print("  -p : Executa as análises léxica e sintática (parser).", file=sys.stderr)
+    print("  -pp: Executa as análises léxica e sintática e imprime a AST.", file=sys.stderr)
     print("  -s : Executa as análises léxica, sintática e semântica.", file=sys.stderr)
-    print("  -sp: Executa semântica e imprime a AST.", file=sys.stderr)
     print("  -g : Compilação completa (gera código MEPA).", file=sys.stderr)
 
 def main():
@@ -51,7 +51,7 @@ def main():
             tok = lexer.token()
             if not tok:
                 break
-            print(tok) # Imprime o objeto token (tipo, valor, linha)
+            print(f"<{tok.type}, {tok.value}> Linha: {tok.lineno}")
         
         if lexer.tem_erro:
             print("ERRO: Erros léxicos encontrados.", file=sys.stderr)
@@ -63,20 +63,19 @@ def main():
     # ============================================================
     # 2. ANÁLISE SINTÁTICA (PARSER)
     # ============================================================
-    # TODO: Descomentar quando implementar o parser_rascal.py
     
-    # print("Iniciando análise sintática...")
-    # parser = make_parser() 
-    # ast_root = parser.parse(data, lexer=lexer)
+    print("Iniciando análise sintática...")
+    parser = make_parser() 
+    ast_root = parser.parse(data, lexer=lexer)
 
-    # if parser.tem_erro or lexer.tem_erro:
-    #     print("ERRO: Erros léxicos ou sintáticos encontrados.", file=sys.stderr)
-    #     sys.exit(1)
+    if parser.tem_erro or lexer.tem_erro:
+        print("ERRO: Erros léxicos ou sintáticos encontrados.", file=sys.stderr)
+        sys.exit(1)
     
     # Se a flag for -p, para aqui
     if flag == '-p':
         print("SUCESSO: Análises léxica e sintática concluídas.")
-        # print("AST gerada com sucesso (em memória).")
+        print("AST gerada com sucesso (em memória).")
         return 
     
     # ============================================================
@@ -100,11 +99,11 @@ def main():
         return 
 
     # Se a flag for -sp, imprime a AST
-    if flag == '-sp':
-        print("SUCESSO: Análises até semântica concluídas.")
+    if flag == '-pp':
+        print("SUCESSO: Análises até sintática concluídas.")
         print("\n--- Árvore Sintática Abstrata (AST) ---")
-        # impressora = ImpressoraAST()
-        # impressora.visita(ast_root)
+        impressora = ImpressoraAST()
+        impressora.visita(ast_root)
         return 
 
     # ============================================================

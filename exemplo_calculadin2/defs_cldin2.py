@@ -35,6 +35,6 @@ class Visitador:
         return visitor(no)
 
     def visita_padrao(self, no: ast.No):
-        raise NotImplementedError(f"visita_{no.__class__.__name__} não foi implementada."
+        raise NotImplementedError(f"visita_{type(no).__name__} não foi implementada."
     )
     

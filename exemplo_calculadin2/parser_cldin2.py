@@ -33,7 +33,7 @@ def p_cmd_tipos(p):
 
 def p_declaracao(p):
     "declaracao : tipo ID ';'"
-    p[0] = ast.Declaracao(nome_tipo=p[1], id=ast.CmdId(nome=p[2]))
+    p[0] = ast.Declaracao(nome_tipo=p[1], id=ast.CalcId(nome=p[2]))
 
 def p_tipo_real(p):
     """tipo : REAL
@@ -51,11 +51,11 @@ def p_condicional_else(p):
 def p_funcao(p):
     """funcao : INPUT '(' ID ')' ';'
               | OUTPUT '(' ID ')' ';'"""
-    p[0] = ast.Funcao(nome_funcao=p[1], argumento=ast.CmdId(nome=p[3]))
+    p[0] = ast.Funcao(nome_funcao=p[1], argumento=ast.CalcId(nome=p[3]))
 
 def p_atribuicao(p):
     "atribuicao : ID ATRIB calculo ';'"
-    p[0] = ast.Atribuicao(id=ast.CmdId(nome=p[1]), calculo=p[3])
+    p[0] = ast.Atribuicao(id=ast.CalcId(nome=p[1]), calculo=p[3])
 
 def p_calculo(p):
     "calculo : expr"
@@ -96,16 +96,16 @@ def p_termo_binario(p):
 
 def p_fator_id(p):
     """fator : ID"""
-    p[0] = ast.CmdId(nome=p[1])
+    p[0] = ast.CalcId(nome=p[1])
 
 def p_fator_num(p):
     """fator : NUM"""
-    p[0] = ast.CmdConstNum(valor=p[1])
+    p[0] = ast.CalcConstNum(valor=p[1])
 
 def p_fator_logico(p):
     """fator : TRUE
              | FALSE"""
-    p[0] = ast.CmdConstBool(valor=(p[1] == 'true'))
+    p[0] = ast.CalcConstBool(valor=(p[1] == 'true'))
 
 def p_fator_paren(p):
     "fator : '(' calculo ')'"

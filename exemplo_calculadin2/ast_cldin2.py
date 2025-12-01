@@ -23,7 +23,7 @@ class BlocoCmds(No):
 @dataclass
 class Declaracao(Cmd):
     nome_tipo: str
-    id: CmdId
+    id: CalcId
 
 @dataclass
 class Condicional(Cmd):
@@ -34,11 +34,11 @@ class Condicional(Cmd):
 @dataclass
 class Funcao(Cmd):
     nome_funcao: str
-    argumento: CmdId
+    argumento: CalcId
 
 @dataclass
 class Atribuicao(Cmd):
-    id: CmdId
+    id: CalcId
     calculo: Calculo
 
 # Filhos de Calculo - herdam tipo
@@ -54,15 +54,15 @@ class CalculoUnario(Calculo):
     calculo: Calculo
 
 @dataclass
-class CmdId(Calculo):
+class CalcId(Calculo):
     nome: str
     # anotação
     simbolo: Simbolo | None = None
 
 @dataclass
-class CmdConstNum(Calculo):
+class CalcConstNum(Calculo):
     valor: float
 
 @dataclass
-class CmdConstBool(Calculo):
+class CalcConstBool(Calculo):
     valor: bool

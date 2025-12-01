@@ -1,380 +1,314 @@
 import sys
-from dataclasses import dataclass
 import ply.yacc as yacc
-from lexer_rascal import tokens, make_lexer
+from lexer_rascal import tokens
+import ast_rascal as ast
 
-# ============================================================================
-# CLASSES PARA A AST (Abstract Syntax Tree) - VERSÃO SIMPLIFICADA
-# ============================================================================
+# Variável global para o parser
+parser = None
 
-@dataclass
-class No:
-    """Classe base para todos os nós da AST"""
-    pass
+# Precedência e Associatividade
 
-@dataclass
-class Programa(No):
-    nome: str
-    bloco: object
-
-@dataclass
-class OpBin(No):
-    op: str
-    esq: object
-    dir: object
-
-@dataclass
-class OpUn(No):
-    op: str
-    expr: object
-
-@dataclass
-class Num(No):
-    valor: int
-
-@dataclass
-class Id(No):
-    nome: str
-
-@dataclass
-class Chamada(No):
-    nome: str
-    args: list
-
-# ============================================================================
-# FUNÇÃO PARA GERAR STRING DA AST
-# ============================================================================
-
-def gera_string_ast(n) -> str:
-    """Gera representação em string da AST"""
-    if isinstance(n, Programa):
-        return f"(program {n.nome} {gera_string_ast(n.bloco)})"
-    elif isinstance(n, OpBin):
-        return f"({n.op} {gera_string_ast(n.esq)} {gera_string_ast(n.dir)})"
-    elif isinstance(n, OpUn):
-        return f"({n.op} {gera_string_ast(n.expr)})"
-    elif isinstance(n, Num):
-        return f"{n.valor}"
-    elif isinstance(n, Id):
-        return f"{n.nome}"
-    elif isinstance(n, Chamada):
-        args_str = " ".join(gera_string_ast(a) for a in n.args)
-        return f"({n.nome} {args_str})" if n.args else f"{n.nome}"
-    elif isinstance(n, list):
-        return " ".join(gera_string_ast(item) for item in n)
-    elif isinstance(n, tuple):
-        nome, *conteudo = n
-        conteudo_str = " ".join(gera_string_ast(c) for c in conteudo)
-        return f"({nome} {conteudo_str})" if conteudo else f"{nome}"
-    else:
-        return str(n) if n is not None else ""
-
-# ============================================================================
-# REGRAS GRAMATICAIS
-# ============================================================================
-
-# Precedência e associatividade dos operadores
+# Define a prioridade dos operadores para evitar ambiguidade.
+# A ordem é da menor para a maior precedência.
 precedence = (
-    ('left', 'OR'),
-    ('left', 'AND'),
-    ('left', '=', 'DIFERENTE', '<', 'MENOR_IGUAL', '>', 'MAIOR_IGUAL'),
-    ('left', '+', '-'),
-    ('left', '*', 'DIV'),
-    ('right', 'NOT', 'UMINUS'),
+    ('nonassoc', '=', 'DIFERENTE', '<', 'MENOR_IGUAL', '>', 'MAIOR_IGUAL', 'ATRIB'), 
+    ('left', '+', '-', 'OR'),                                      
+    ('left', '*', 'DIV', 'AND'),                                   
+    ('right', 'NOT', 'UMINUS'),                                    
+    ('nonassoc', 'THEN'),                                          
+    ('nonassoc', 'ELSE'),
 )
 
-# ==================== PROGRAMA ====================
+# Regras do Programa e Blocos
 
 def p_programa(p):
-    '''programa : PROGRAM ID ';' bloco '.' '''
-    p[0] = Programa(p[2], p[4])
-
-# ==================== BLOCO ====================
+    '''
+    programa : PROGRAM ID ';' bloco '.'
+    '''
+    p[0] = ast.Programa(id=p[2], bloco=p[4])
 
 def p_bloco(p):
-    '''bloco : secao_declaracao_variaveis secao_declaracao_subrotinas comando_composto
-             | secao_declaracao_variaveis comando_composto
-             | secao_declaracao_subrotinas comando_composto
-             | comando_composto'''
-    if len(p) == 4:
-        p[0] = ('bloco', p[1], p[2], p[3])
-    elif len(p) == 3:
-        p[0] = ('bloco', p[1], p[2])
-    else:
-        p[0] = ('bloco', p[1])
+    '''
+    bloco : secao_decl_vars secao_decl_subrotinas comando_composto
+    '''
+    # p[1] = lista de variáveis (ou vazio)
+    # p[2] = lista de subrotinas (ou vazio)
+    # p[3] = comando composto (obrigatório)
+    p[0] = ast.Bloco(decl_vars=p[1], decl_subrotinas=p[2], comando_composto=p[3])
 
-# ==================== DECLARAÇÃO DE VARIÁVEIS ====================
+# Declaração de Váriaveis
 
-def p_secao_declaracao_variaveis(p):
-    '''secao_declaracao_variaveis : VAR declaracao_variaveis_lista'''
-    p[0] = ('var', p[2])
-
-def p_declaracao_variaveis_lista(p):
-    '''declaracao_variaveis_lista : declaracao_variaveis ';'
-                                  | declaracao_variaveis_lista declaracao_variaveis ';' '''
+def p_secao_decl_vars(p):
+    '''
+    secao_decl_vars : VAR lista_decl_vars
+                    | empty
+    '''
     if len(p) == 3:
-        p[0] = [p[1]]
+        p[0] = p[2] # Retorna a lista de declarações
     else:
-        p[0] = p[1] + [p[2]]
+        p[0] = []   # Retorna lista vazia se não houver 'var'
 
-def p_declaracao_variaveis(p):
-    '''declaracao_variaveis : lista_identificadores ':' tipo'''
-    p[0] = ('decl', p[1], p[3])
-
-def p_lista_identificadores(p):
-    '''lista_identificadores : ID
-                            | lista_identificadores ',' ID'''
-    if len(p) == 2:
-        p[0] = [p[1]]
+def p_lista_decl_vars(p):
+    '''
+    lista_decl_vars : lista_decl_vars decl_var ';'
+                    | decl_var ';'
+    '''
+    if len(p) == 4:
+        p[1].append(p[2]) # Incrementa na lista caso ela já exista
+        p[0] = p[1]
     else:
-        p[0] = p[1] + [p[3]]
+        p[0] = [p[1]] # Cria a lista de vars
+
+def p_decl_var(p):
+    '''
+    decl_var : lista_ids ':' tipo
+    '''
+    p[0] = ast.DeclVariaveis(ids=p[1], tipo=p[3])
+
+def p_lista_ids(p):
+    '''
+    lista_ids : lista_ids ',' ID
+              | ID
+    '''
+    if len(p) == 4:
+        p[1].append(p[3])
+        p[0] = p[1]
+    else:
+        p[0] = [p[1]]
 
 def p_tipo(p):
-    '''tipo : BOOLEAN
-            | INTEGER'''
+    '''
+    tipo : INTEGER
+         | BOOLEAN
+    '''
     p[0] = p[1]
 
-# ==================== DECLARAÇÃO DE SUBROTINAS ====================
+# Declaração de subrotinas
 
-def p_secao_declaracao_subrotinas(p):
-    '''secao_declaracao_subrotinas : declaracao_subrotina_lista'''
-    p[0] = ('subrotinas', p[1])
+def p_secao_decl_subrotinas(p):
+    '''
+    secao_decl_subrotinas : secao_decl_subrotinas decl_procedimento ';'
+                          | secao_decl_subrotinas decl_funcao ';'
+                          | empty
+    '''
+    if len(p) == 4:
+        p[1].append(p[2])
+        p[0] = p[1]
+    elif len(p) == 2:
+        p[0] = [] # Inicializa lista vazia
 
-def p_declaracao_subrotina_lista(p):
-    '''declaracao_subrotina_lista : declaracao_subrotina ';'
-                                  | declaracao_subrotina_lista declaracao_subrotina ';' '''
-    if len(p) == 3:
+# --- Procedimento ---
+def p_decl_procedimento(p):
+    '''
+    decl_procedimento : PROCEDURE ID parametros ';' bloco_subrot
+    '''
+    p[0] = ast.DeclProcedimento(id=p[2], parametros=p[3], bloco=p[5])
+
+# --- Função ---
+def p_decl_funcao(p):
+    '''
+    decl_funcao : FUNCTION ID parametros ':' tipo ';' bloco_subrot
+    '''
+    p[0] = ast.DeclFuncao(id=p[2], parametros=p[3], tipo_retorno=p[5], bloco=p[7])
+
+# Parâmetros Formais (na declaração)
+def p_parametros(p):
+    '''
+    parametros : '(' lista_decl_params ')'
+               | empty
+    '''
+    if len(p) == 4:
+        p[0] = p[2]
+    else:
+        p[0] = []
+
+def p_lista_decl_params(p):
+    '''
+    lista_decl_params : lista_decl_params ';' decl_param
+                      | decl_param
+    '''
+    if len(p) == 4:
+        p[1].append(p[3])
+        p[0] = p[1]
+    else:
         p[0] = [p[1]]
-    else:
-        p[0] = p[1] + [p[2]]
 
-def p_declaracao_subrotina(p):
-    '''declaracao_subrotina : declaracao_procedimento
-                           | declaracao_funcao'''
-    p[0] = p[1]
+def p_decl_param(p):
+    '''
+    decl_param : lista_ids ':' tipo
+    '''
+    p[0] = ast.Parametro(ids=p[1], tipo=p[3])
 
-def p_declaracao_procedimento(p):
-    '''declaracao_procedimento : PROCEDURE ID parametros_formais ';' bloco_subrot
-                              | PROCEDURE ID ';' bloco_subrot'''
-    if len(p) == 6:
-        p[0] = ('procedure', p[2], p[3], p[5])
-    else:
-        p[0] = ('procedure', p[2], p[4])
-
-def p_declaracao_funcao(p):
-    '''declaracao_funcao : FUNCTION ID parametros_formais ':' tipo ';' bloco_subrot
-                        | FUNCTION ID ':' tipo ';' bloco_subrot'''
-    if len(p) == 8:
-        p[0] = ('function', p[2], p[3], p[5], p[7])
-    else:
-        p[0] = ('function', p[2], p[4], p[6])
-
+# Bloco interno de subrotinas (não permite novas subrotinas dentro)
 def p_bloco_subrot(p):
-    '''bloco_subrot : secao_declaracao_variaveis comando_composto
-                   | comando_composto'''
-    if len(p) == 3:
-        p[0] = ('bloco_subrot', p[1], p[2])
-    else:
-        p[0] = ('bloco_subrot', p[1])
+    '''
+    bloco_subrot : secao_decl_vars comando_composto
+    '''
+    p[0] = ast.BlocoSubrotina(decl_vars=p[1], comando_composto=p[2])
 
-def p_parametros_formais(p):
-    '''parametros_formais : '(' declaracao_parametros_lista ')' '''
-    p[0] = ('params', p[2])
-
-def p_declaracao_parametros_lista(p):
-    '''declaracao_parametros_lista : declaracao_parametros
-                                   | declaracao_parametros_lista ';' declaracao_parametros'''
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
-        p[0] = p[1] + [p[3]]
-
-def p_declaracao_parametros(p):
-    '''declaracao_parametros : lista_identificadores ':' tipo'''
-    p[0] = ('param', p[1], p[3])
-
-# ==================== COMANDOS ====================
+# Comandos
 
 def p_comando_composto(p):
-    '''comando_composto : BEGIN comando_lista END'''
-    p[0] = ('begin', p[2])
+    '''
+    comando_composto : BEGIN lista_comandos END
+    '''
+    p[0] = ast.ComandoComposto(comandos=p[2])
 
-def p_comando_lista(p):
-    '''comando_lista : comando
-                    | comando_lista ';' comando'''
-    if len(p) == 2:
-        p[0] = [p[1]]
+def p_lista_comandos(p):
+    '''
+    lista_comandos : lista_comandos ';' comando
+                   | comando
+    '''
+    if len(p) == 4:
+        p[1].append(p[3])
+        p[0] = p[1]
     else:
-        p[0] = p[1] + [p[3]]
+        p[0] = [p[1]]
 
 def p_comando(p):
-    '''comando : atribuicao
-              | chamada_procedimento
-              | condicional
-              | repeticao
-              | leitura
-              | escrita
-              | comando_composto'''
+    '''
+    comando : atribuicao
+            | chamada_procedimento
+            | comando_composto
+            | condicional
+            | repeticao
+            | leitura
+            | escrita
+    '''
     p[0] = p[1]
 
 def p_atribuicao(p):
-    '''atribuicao : ID ATRIB expressao'''
-    p[0] = (':=', p[1], p[3])
+    '''
+    atribuicao : ID ATRIB expressao
+    '''
+    p[0] = ast.CmdAtribuicao(id=p[1], expressao=p[3])
 
 def p_chamada_procedimento(p):
-    '''chamada_procedimento : ID '(' lista_expressoes ')'
-                           | ID'''
+    '''
+    chamada_procedimento : ID '(' lista_exprs ')'
+                         | ID
+    ''' 
+    # Pascal permite chamar sem parenteses se nao tiver args
+    args = []
     if len(p) == 5:
-        p[0] = Chamada(p[1], p[3])
-    else:
-        p[0] = Chamada(p[1], [])
+        args = p[3]
+    p[0] = ast.CmdChamadaProcedimento(id=p[1], argumentos=args)
 
 def p_condicional(p):
-    '''condicional : IF expressao THEN comando ELSE comando
-                  | IF expressao THEN comando'''
-    if len(p) == 7:
-        p[0] = ('if', p[2], p[4], p[6])
+    '''
+    condicional : IF expressao THEN comando
+                | IF expressao THEN comando ELSE comando
+    '''
+    if len(p) == 5:
+        p[0] = ast.CmdIf(condicao=p[2], cmd_then=p[4], cmd_else=None)
     else:
-        p[0] = ('if', p[2], p[4])
+        p[0] = ast.CmdIf(condicao=p[2], cmd_then=p[4], cmd_else=p[6])
 
 def p_repeticao(p):
-    '''repeticao : WHILE expressao DO comando'''
-    p[0] = ('while', p[2], p[4])
+    '''
+    repeticao : WHILE expressao DO comando
+    '''
+    p[0] = ast.CmdWhile(condicao=p[2], cmd_do=p[4])
 
 def p_leitura(p):
-    '''leitura : READ '(' lista_identificadores ')' '''
-    p[0] = ('read', p[3])
+    '''
+    leitura : READ '(' lista_ids ')'
+    '''
+    p[0] = ast.CmdRead(ids=p[3])
 
 def p_escrita(p):
-    '''escrita : WRITE '(' lista_expressoes ')' '''
-    p[0] = ('write', p[3])
+    '''
+    escrita : WRITE '(' lista_exprs ')'
+    '''
+    p[0] = ast.CmdWrite(expressoes=p[3])
 
-def p_lista_expressoes(p):
-    '''lista_expressoes : expressao
-                       | lista_expressoes ',' expressao'''
-    if len(p) == 2:
+# Expressões
+
+def p_lista_exprs(p):
+    '''
+    lista_exprs : lista_exprs ',' expressao
+                | expressao
+    '''
+    if len(p) == 4:
+        p[1].append(p[3])
+        p[0] = p[1]
+    else:
         p[0] = [p[1]]
-    else:
-        p[0] = p[1] + [p[3]]
 
-# ==================== EXPRESSÕES ====================
+def p_expressao_binaria(p):
+    '''
+    expressao : expressao '+' expressao
+              | expressao '-' expressao
+              | expressao '*' expressao
+              | expressao DIV expressao
+              | expressao AND expressao
+              | expressao OR expressao
+              | expressao '=' expressao
+              | expressao DIFERENTE expressao
+              | expressao '<' expressao
+              | expressao '>' expressao
+              | expressao MENOR_IGUAL expressao
+              | expressao MAIOR_IGUAL expressao
+    '''
+    p[0] = ast.ExpBinaria(esq=p[1], op=p[2], dir=p[3])
 
-def p_expressao(p):
-    '''expressao : expressao_simples
-                | expressao_simples relacao expressao_simples'''
-    if len(p) == 2:
+def p_expressao_unaria(p):
+    '''
+    expressao : NOT expressao
+              | '-' expressao %prec UMINUS
+    '''
+    p[0] = ast.ExpUnaria(op=p[1], expressao=p[2])
+
+def p_expressao_grupo(p):
+    '''
+    expressao : '(' expressao ')'
+    '''
+    p[0] = p[2]
+
+def p_expressao_atomos(p):
+    '''
+    expressao : NUM
+              | TRUE
+              | FALSE
+              | ID
+              | chamada_funcao
+    '''
+    if isinstance(p[1], int):
+        p[0] = ast.ExpNumero(valor=p[1])
+    elif p[1] == 'true':
+        p[0] = ast.ExpBooleano(valor=True)
+    elif p[1] == 'false':
+        p[0] = ast.ExpBooleano(valor=False)
+    elif isinstance(p[1], ast.ExpChamadaFuncao):
         p[0] = p[1]
     else:
-        p[0] = OpBin(p[2], p[1], p[3])
-
-def p_relacao(p):
-    '''relacao : '='
-              | DIFERENTE
-              | '<'
-              | MENOR_IGUAL
-              | '>'
-              | MAIOR_IGUAL'''
-    p[0] = p[1]
-
-def p_expressao_simples(p):
-    '''expressao_simples : termo
-                        | expressao_simples '+' termo
-                        | expressao_simples '-' termo
-                        | expressao_simples OR termo'''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = OpBin(p[2], p[1], p[3])
-
-def p_termo(p):
-    '''termo : fator
-            | termo '*' fator
-            | termo DIV fator
-            | termo AND fator'''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = OpBin(p[2], p[1], p[3])
-
-def p_fator(p):
-    '''fator : variavel
-            | numero
-            | logico
-            | chamada_funcao
-            | '(' expressao ')'
-            | NOT fator
-            | '-' fator %prec UMINUS'''
-    if len(p) == 2:
-        p[0] = p[1]
-    elif len(p) == 3:
-        p[0] = OpUn(p[1], p[2])
-    else:
-        p[0] = p[2]
-
-def p_variavel(p):
-    '''variavel : ID'''
-    p[0] = Id(p[1])
-
-def p_numero(p):
-    '''numero : NUM'''
-    p[0] = Num(p[1])
-
-def p_logico(p):
-    '''logico : FALSE
-             | TRUE'''
-    p[0] = p[1]
+        # É um ID (variável simples)
+        p[0] = ast.ExpVariavel(id=p[1])
 
 def p_chamada_funcao(p):
-    '''chamada_funcao : ID '(' lista_expressoes ')' '''
-    p[0] = Chamada(p[1], p[3])
+    '''
+    chamada_funcao : ID '(' lista_exprs ')'
+    '''
+    p[0] = ast.ExpChamadaFuncao(id=p[1], argumentos=p[3])
 
-# ==================== TRATAMENTO DE ERROS ====================
+# Tratamento de Erros
+
+def p_empty(p):
+    '''
+    empty :
+    '''
+    pass
 
 def p_error(p):
+    global parser
     if p:
-        print(f"Erro sintático no token '{p.value}' (tipo: {p.type}) na linha {p.lineno}")
+        print(f"Erro sintático: Token inesperado '{p.value}' (tipo {p.type}) na linha {p.lineno}", file=sys.stderr)
     else:
-        print("Erro sintático: final inesperado do arquivo")
-
-# ============================================================================
-# FUNÇÕES AUXILIARES
-# ============================================================================
+        print("Erro sintático: Fim de arquivo (EOF) inesperado.", file=sys.stderr)
+    parser.tem_erro = True
 
 def make_parser():
-    """Cria e retorna o parser"""
-    return yacc.yacc()
-
-def parse_file(filename):
-    """Lê um arquivo e faz o parsing"""
-    with open(filename, 'r', encoding='utf-8') as f:
-        data = f.read()
-    
-    lexer = make_lexer()
-    parser = make_parser()
-    
-    try:
-        result = parser.parse(data, lexer=lexer)
-        return result
-    except Exception as e:
-        print(f"Erro durante o parsing: {e}")
-        return None
-
-# ============================================================================
-# MAIN - Para testar o parser
-# ============================================================================
-
-if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print("Uso: python parser.py <arquivo>")
-        sys.exit(1)
-    
-    filename = sys.argv[1]
-    ast = parse_file(filename)
-    
-    if ast:
-        print("\n=== AST GERADA ===")
-        print(gera_string_ast(ast))
-        print("\n=== PARSING CONCLUÍDO COM SUCESSO ===")
-    else:
-        print("\n=== FALHA NO PARSING ===")
-        sys.exit(1)
+    global parser
+    parser = yacc.yacc()
+    parser.tem_erro = False
+    return parser
