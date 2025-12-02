@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import List, Dict, Optional
 import ast_rascal as ast
-from defs_rascal import (Visitador, Simbolo, Categoria, Tipo, TIPO_INT, TIPO_BOOL, get_tipo_by_name)
+from defs_rascal import (Visitador, Simbolo, Categoria, TIPO_INT, TIPO_BOOL, get_tipo_by_name)
 
 class TabelaSimbolos:
     def __init__(self) -> None:
@@ -99,7 +99,6 @@ class VerificadorSemantico(Visitador):
         self.ts.abre_escopo()
         
         if no.parametros:
-            # Primeiro contamos quantos parâmetros existem no total
             
             offset_atual = -5
             
@@ -192,7 +191,7 @@ class VerificadorSemantico(Visitador):
         
         simbolo = None
         
-        # Verifica PRIMEIRO se estamos atribuindo ao nome da função atual (Retorno)
+        # Verifica se estamos atribuindo ao nome da função atual (Retorno)
         if self.funcao_atual and no.id == self.funcao_atual.nome:
             simbolo = self.funcao_atual
             self.encontrou_retorno = True
@@ -256,11 +255,19 @@ class VerificadorSemantico(Visitador):
     
     def visita_CmdIf(self, no: ast.CmdIf):
         self.visita(no.condicao)
+
+        if no.condicao.tipo_inferido != TIPO_BOOL:
+            self._erro(f"Condição do 'if' deve ser do tipo boolean, mas recebeu {no.condicao.tipo_inferido}.")
+
         self.visita(no.cmd_then)
         if no.cmd_else: self.visita(no.cmd_else)
 
     def visita_CmdWhile(self, no: ast.CmdWhile):
         self.visita(no.condicao)
+
+        if no.condicao.tipo_inferido != TIPO_BOOL:
+            self._erro(f"Condição do 'while' deve ser do tipo boolean, mas recebeu {no.condicao.tipo_inferido}.")
+
         self.visita(no.cmd_do)
 
     def visita_CmdWrite(self, no: ast.CmdWrite):
@@ -281,9 +288,28 @@ class VerificadorSemantico(Visitador):
 
     def visita_ExpUnaria(self, no: ast.ExpUnaria):
         self.visita(no.expressao)
-        no.tipo_inferido = no.expressao.tipo_inferido
+        t = no.expressao.tipo_inferido
+
+        if t is None:
+            no.tipo_inferido = None
+            return
+
+        if no.op == '-':
+            if t != TIPO_INT:
+                self._erro(f"Operador unário '-' requer integer. Recebeu {t}.")
+                no.tipo_inferido = TIPO_INT # Assume INT para evitar erros em cascata
+            else:
+                no.tipo_inferido = TIPO_INT
+
+        elif no.op == 'not':
+            if t != TIPO_BOOL:
+                self._erro(f"Operador 'not' requer boolean. Recebeu {t}.")
+                no.tipo_inferido = TIPO_BOOL # Assume BOOL para evitar erros em cascata
+            else:
+                no.tipo_inferido = TIPO_BOOL
         
     def visita_ExpNumero(self, no): no.tipo_inferido = TIPO_INT
+
     def visita_ExpBooleano(self, no): no.tipo_inferido = TIPO_BOOL
 
     def _verifica_argumentos(self, simbolo, args):
@@ -292,4 +318,10 @@ class VerificadorSemantico(Visitador):
         if expected != given:
             self._erro(f"'{simbolo.nome}' espera {expected} args, recebeu {given}.")
         if args:
-            for arg in args: self.visita(arg)
+            for i, arg in enumerate(args):
+                self.visita(arg)
+                tipo_recebido = arg.tipo_inferido
+                tipo_esperado = simbolo.params_tipos[i]
+
+                if tipo_recebido and tipo_recebido != tipo_esperado:
+                    self._erro(f"Argumento {i+1} de '{simbolo.nome}': esperado {tipo_esperado}, recebido {tipo_recebido}.")

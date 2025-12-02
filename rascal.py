@@ -16,30 +16,21 @@ def imprimir_modo_uso():
     print("  -g : Compilação completa (gera código MEPA).", file=sys.stderr)
 
 def main():
-    # Verifica se passou a flag
     if len(sys.argv) != 2:
         imprimir_modo_uso()
         sys.exit(1)
         
     flag = sys.argv[1]
     
-    # Lê o código fonte da entrada padrão (pipe ou redirecionamento <)
     try:
         data = sys.stdin.read()
     except Exception as e:
         print(f"Erro ao ler entrada padrão: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # ============================================================
-    # 1. ANÁLISE LÉXICA
-    # ============================================================
-
+    # Análise Léxica
     print("Iniciando análise léxica...")
     lexer = make_lexer()
-    
-    # Adicionamos um atributo para rastrear erros, caso o lexer não tenha nativamente
-    if not hasattr(lexer, 'tem_erro'):
-        lexer.tem_erro = False
 
     # Se a flag for -l, apenas imprime os tokens e para
     if flag == '-l':
