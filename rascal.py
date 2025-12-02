@@ -1,13 +1,9 @@
 import sys
-
-# Importa o analisador léxico que você já tem
 from lexer_rascal import make_lexer
 from parser_rascal import make_parser
 from printer_rascal import ImpressoraAST
-
-# --- IMPORTAÇÕES FUTURAS (Descomente à medida que implementar) ---
-# from sem_rascal import VerificadorSemantico 
-# from codegen_rascal import GeradorCodigoMEPA
+from sem_rascal import VerificadorSemantico
+from codegen_rascal import GeradorCodigoMEPA
 
 def imprimir_modo_uso():
     print("Modo de uso: python rascal.py <flag> < arquivo_entrada", file=sys.stderr)
@@ -37,6 +33,8 @@ def main():
     # ============================================================
     # 1. ANÁLISE LÉXICA
     # ============================================================
+
+    print("Iniciando análise léxica...")
     lexer = make_lexer()
     
     # Adicionamos um atributo para rastrear erros, caso o lexer não tenha nativamente
@@ -45,7 +43,6 @@ def main():
 
     # Se a flag for -l, apenas imprime os tokens e para
     if flag == '-l':
-        print(f"Iniciando análise léxica...")
         lexer.input(data)
         while True:
             tok = lexer.token()
@@ -66,10 +63,14 @@ def main():
     
     print("Iniciando análise sintática...")
     parser = make_parser() 
-    ast_root = parser.parse(data, lexer=lexer)
+    ast_raiz = parser.parse(data, lexer=lexer)
 
-    if parser.tem_erro or lexer.tem_erro:
-        print("ERRO: Erros léxicos ou sintáticos encontrados.", file=sys.stderr)
+    if lexer.tem_erro:
+        print("ERRO: Erros léxicos encontrados.", file=sys.stderr)
+        sys.exit(1)
+
+    if parser.tem_erro:
+        print("ERRO: Erros sintáticos encontrados.", file=sys.stderr)
         sys.exit(1)
     
     # Se a flag for -p, para aqui
@@ -78,32 +79,31 @@ def main():
         print("AST gerada com sucesso (em memória).")
         return 
     
-    # ============================================================
-    # 3. ANÁLISE SEMÂNTICA
-    # ============================================================
-    # TODO: Descomentar quando implementar a semântica
-    
-    # print("Iniciando análise semântica...")
-    # verificador = VerificadorSemantico()
-    # verificador.visita(ast_root) 
-    
-    # if verificador.tem_erro:
-    #     print("ERRO: Erros semânticos encontrados:", file=sys.stderr)
-    #     for erro in verificador.erros:
-    #         print(f"- {erro}", file=sys.stderr)
-    #     sys.exit(1)
-    
-    # Se a flag for -s, para aqui
-    if flag == '-s':
-        print("SUCESSO: Análises léxica, sintática e semântica concluídas.")
-        return 
-
-    # Se a flag for -sp, imprime a AST
+    # Se a flag for -pp, imprime a AST
     if flag == '-pp':
         print("SUCESSO: Análises até sintática concluídas.")
         print("\n--- Árvore Sintática Abstrata (AST) ---")
         impressora = ImpressoraAST()
-        impressora.visita(ast_root)
+        impressora.visita(ast_raiz)
+        return 
+    
+    # ============================================================
+    # 3. ANÁLISE SEMÂNTICA
+    # ============================================================
+    
+    print("Iniciando análise semântica...")
+    verificador = VerificadorSemantico()
+    verificador.visita(ast_raiz) 
+    
+    if verificador.tem_erro:
+        print("ERRO: Erros semânticos encontrados:", file=sys.stderr)
+        for erro in verificador.erros:
+            print(f"- {erro}", file=sys.stderr)
+        sys.exit(1)
+    
+    # Se a flag for -s, para aqui
+    if flag == '-s':
+        print("SUCESSO: Análises léxica, sintática e semântica concluídas.")
         return 
 
     # ============================================================
@@ -111,20 +111,25 @@ def main():
     # ============================================================
     # TODO: Descomentar quando implementar o gerador de código
     
+# Execução para -g
     if flag == '-g':
-        print("Iniciando geração de código...")
-        # gerador = GeradorCodigoMEPA()
-        # gerador.visita(ast_root)
+        # Gerador de código
+        gerador = GeradorCodigoMEPA()
+        gerador.visita(ast_raiz)
 
-        # if gerador.tem_erro:
-        #     print("ERRO: Falha na geração de código.", file=sys.stderr)
-        #     sys.exit(1)
+        if gerador.tem_erro:
+            print("ERRO DE GERAÇÃO:", file=sys.stderr)
+            for erro in gerador.erros:
+                print(f"- {erro}", file=sys.stderr)
+            sys.exit(1)
+        
+        # Imprime o código gerado na saída padrão (stdout)
+        # Isso permite redirecionar para arquivo: python rascal.py -g < in.ras > out.mepa
+        for instrucao in gerador.codigo:
+            print(instrucao)
+            
+        return
     
-        # O código gerado geralmente vai para um arquivo ou stdout
-        # for instrucao in gerador.codigo:
-        #     print(instrucao)
-        return 
-
     # Flag não reconhecida
     print(f"ERRO: Flag '{flag}' desconhecida.", file=sys.stderr)
     imprimir_modo_uso()

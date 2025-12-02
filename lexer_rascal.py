@@ -78,14 +78,7 @@ def t_newline(t):
 
 # Erros léxicos
 def t_error(t):
-    char = t.value[0]
-
-    if char in '0123456789_':
-        print (f"Erro léxico do tipo caractere inicial inválido em identificador ({t.value[0]!r}) na linha {t.lineno}")
-
-    else:
-        print(f"Erro léxico do tipo caractere não reconhecido ({t.value[0]!r}) na linha {t.lineno}")
-    
+    print(f"Erro léxico: caractere ilegal '{t.value[0]}' na linha {t.lexer.lineno}")
     t.lexer.tem_erro = True
     t.lexer.skip(1)
 

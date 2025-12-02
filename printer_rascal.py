@@ -10,9 +10,7 @@ class ImpressoraAST(Visitador):
     def imprime(self, texto: str):
         self.saida.write(texto)
 
-    # =====================
     # Programa e Bloco
-    # =====================
     def visita_Programa(self, no: ast.Programa):
         self.imprime("(Programa ")
         self.imprime(no.id)
@@ -57,9 +55,8 @@ class ImpressoraAST(Visitador):
         self.visita(no.comando_composto)
         self.imprime(")")
 
-    # =====================
     # Declarações
-    # =====================
+
     def visita_DeclVariaveis(self, no: ast.DeclVariaveis):
         # Ex: (Decl x,y : integer)
         ids = ",".join(no.ids)
@@ -87,9 +84,8 @@ class ImpressoraAST(Visitador):
         ids = ",".join(no.ids)
         self.imprime(f" {{{ids}:{no.tipo}}} ")
 
-    # =====================
     # Comandos
-    # =====================
+
     def visita_ComandoComposto(self, no: ast.ComandoComposto):
         self.imprime("(Begin")
         for cmd in no.comandos:
@@ -138,9 +134,8 @@ class ImpressoraAST(Visitador):
                 self.visita(arg)
         self.imprime(")")
 
-    # =====================
     # Expressões
-    # =====================
+
     def visita_ExpBinaria(self, no: ast.ExpBinaria):
         self.imprime(f"({no.op} ")
         self.visita(no.esq)

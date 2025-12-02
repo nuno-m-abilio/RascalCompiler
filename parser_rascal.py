@@ -186,12 +186,15 @@ def p_atribuicao(p):
 def p_chamada_procedimento(p):
     '''
     chamada_procedimento : ID '(' lista_exprs ')'
+                         | ID '(' ')'
                          | ID
     ''' 
     # Pascal permite chamar sem parenteses se nao tiver args
     args = []
     if len(p) == 5:
         args = p[3]
+    elif len(p) == 4:
+        args = []
     p[0] = ast.CmdChamadaProcedimento(id=p[1], argumentos=args)
 
 def p_condicional(p):
@@ -288,8 +291,12 @@ def p_expressao_atomos(p):
 def p_chamada_funcao(p):
     '''
     chamada_funcao : ID '(' lista_exprs ')'
+                   | ID '(' ')'
     '''
-    p[0] = ast.ExpChamadaFuncao(id=p[1], argumentos=p[3])
+    args = []
+    if len(p) == 5:
+        args = p[3]
+    p[0] = ast.ExpChamadaFuncao(id=p[1], argumentos=args)
 
 # Tratamento de Erros
 
