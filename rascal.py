@@ -29,7 +29,6 @@ def main():
         sys.exit(1)
 
     # Análise Léxica
-    print("Iniciando análise léxica...")
     lexer = make_lexer()
 
     # Se a flag for -l, apenas imprime os tokens e para
@@ -39,35 +38,24 @@ def main():
             tok = lexer.token()
             if not tok:
                 break
-            print(f"<{tok.type}, {tok.value}> Linha: {tok.lineno}")
+            # print(f"<{tok.type}, {tok.value}> Linha: {tok.lineno}")
         
         if lexer.tem_erro:
-            print("ERRO: Erros léxicos encontrados.", file=sys.stderr)
-            sys.exit(1)
+            sys.exit(0)
         else:
-            print("SUCESSO: Análise léxica concluída.")
+            print("SUCESSO: Análise léxica concluída.", file=sys.stderr)
         return 
 
-    # ============================================================
-    # 2. ANÁLISE SINTÁTICA (PARSER)
-    # ============================================================
-    
-    print("Iniciando análise sintática...")
+    # Análise Sintática
     parser = make_parser() 
     ast_raiz = parser.parse(data, lexer=lexer)
 
-    if lexer.tem_erro:
-        print("ERRO: Erros léxicos encontrados.", file=sys.stderr)
-        sys.exit(1)
-
-    if parser.tem_erro:
-        print("ERRO: Erros sintáticos encontrados.", file=sys.stderr)
-        sys.exit(1)
+    if parser.tem_erro or lexer.tem_erro:
+        sys.exit(0)
     
     # Se a flag for -p, para aqui
     if flag == '-p':
-        print("SUCESSO: Análises léxica e sintática concluídas.")
-        print("AST gerada com sucesso (em memória).")
+        print("SUCESSO: Análises léxica e sintática concluídas.", file=sys.stderr)
         return 
     
     # Se a flag for -pp, imprime a AST
@@ -78,31 +66,22 @@ def main():
         impressora.visita(ast_raiz)
         return 
     
-    # ============================================================
-    # 3. ANÁLISE SEMÂNTICA
-    # ============================================================
-    
-    print("Iniciando análise semântica...")
+    # Análise Semântica
     verificador = VerificadorSemantico()
     verificador.visita(ast_raiz) 
     
     if verificador.tem_erro:
-        print("ERRO: Erros semânticos encontrados:", file=sys.stderr)
+        print("Erros semânticos encontrados:", file=sys.stderr)
         for erro in verificador.erros:
             print(f"- {erro}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(0)
     
     # Se a flag for -s, para aqui
     if flag == '-s':
-        print("SUCESSO: Análises léxica, sintática e semântica concluídas.")
+        print("SUCESSO: Análises léxica, sintática e semântica concluídas.", file=sys.stderr)
         return 
 
-    # ============================================================
-    # 4. GERAÇÃO DE CÓDIGO
-    # ============================================================
-    # TODO: Descomentar quando implementar o gerador de código
-    
-# Execução para -g
+    # Execução para -g
     if flag == '-g':
         # Gerador de código
         gerador = GeradorCodigoMEPA()
@@ -112,13 +91,13 @@ def main():
             print("ERRO DE GERAÇÃO:", file=sys.stderr)
             for erro in gerador.erros:
                 print(f"- {erro}", file=sys.stderr)
-            sys.exit(1)
+            sys.exit(0)
         
         # Imprime o código gerado na saída padrão (stdout)
         # Isso permite redirecionar para arquivo: python rascal.py -g < in.ras > out.mepa
         for instrucao in gerador.codigo:
-            print(instrucao)
-            
+            print(instrucao, file=sys.stderr)
+        print("SUCESSO: Geração de código concluída.", file=sys.stderr)    
         return
     
     # Flag não reconhecida

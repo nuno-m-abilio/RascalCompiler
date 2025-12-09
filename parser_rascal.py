@@ -3,12 +3,9 @@ import ply.yacc as yacc
 from lexer_rascal import tokens
 import ast_rascal as ast
 
-# Variável global para o parser
 parser = None
 
 # Precedência e Associatividade
-
-# Define a prioridade dos operadores para evitar ambiguidade.
 # A ordem é da menor para a maior precedência.
 precedence = (
     ('nonassoc', '=', 'DIFERENTE', '<', 'MENOR_IGUAL', '>', 'MAIOR_IGUAL', 'ATRIB'), 

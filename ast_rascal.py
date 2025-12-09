@@ -30,12 +30,11 @@ class Expressao(No):
     tipo_inferido: Optional[str] = None 
 
 # Estrutura do programa e blocos
-
 @dataclass
 class Programa(No):
     '''
     Representa o programa inteiro.
-    Gramática: program <id>; <bloco>.
+    programa : PROGRAM ID ';' bloco '.'
     '''
     id: str
     bloco: Bloco
@@ -44,7 +43,7 @@ class Programa(No):
 class Bloco(No):
     '''
     Representa o bloco principal do programa.
-    Gramática: [vars] [subrotinas] <comando_composto>
+    bloco : secao_decl_vars secao_decl_subrotinas comando_composto
     '''
     decl_vars: List[DeclVariaveis]
     decl_subrotinas: List[DeclSubrotina]
@@ -54,14 +53,13 @@ class Bloco(No):
 class BlocoSubrotina(No):
     '''
     Representa o bloco interno de uma função ou procedimento.
-    Diferença: Não permite declarar novas subrotinas dentro dele (conforme gramática).
-    Gramática: [vars] <comando_composto>
+    Não permite declarar novas subrotinas dentro dele (conforme gramática).
+    bloco_subrot : secao_decl_vars comando_composto
     '''
     decl_vars: List[DeclVariaveis]
     comando_composto: ComandoComposto
 
 # Declarações
-
 @dataclass
 class DeclVariaveis(Declaracao):
     '''
