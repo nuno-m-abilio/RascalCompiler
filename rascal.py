@@ -93,8 +93,7 @@ def main():
                 print(f"- {erro}", file=sys.stderr)
             sys.exit(0)
         
-        # Imprime o código gerado na saída padrão (stdout)
-        # Isso permite redirecionar para arquivo: python rascal.py -g < in.ras > out.mepa
+        # Imprime o código gerado na saída padrão
         for instrucao in gerador.codigo:
             print(instrucao, file=sys.stderr)
         print("SUCESSO: Geração de código concluída.", file=sys.stderr)    

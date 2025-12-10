@@ -67,7 +67,7 @@ class GeradorCodigoMEPA(Visitador):
 
     # Subrotinas
     
-    def _gera_subrotina(self, no, tipo_decl):
+    def _gera_subrotina(self, no):
         rotulo = self._novo_rotulo()
         self.rotulos_procs[no.simbolo.nome] = rotulo
         
@@ -135,7 +135,7 @@ class GeradorCodigoMEPA(Visitador):
             self.visita(no.cmd_else)
             self._emite_rotulo(rot_fim)
         else:
-            # SEM ELSE: Só precisa de 1 rótulo (para sair se falso)
+            # Só precisa de 1 rótulo
             rot_saida = self._novo_rotulo()
             
             self.visita(no.condicao)

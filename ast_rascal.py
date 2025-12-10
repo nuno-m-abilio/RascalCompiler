@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import List, Optional, Union
 
 # Classes Bases
-
 class No:
     '''
     Classe base para todos os nós da AST.
@@ -53,7 +52,7 @@ class Bloco(No):
 class BlocoSubrotina(No):
     '''
     Representa o bloco interno de uma função ou procedimento.
-    Não permite declarar novas subrotinas dentro dele (conforme gramática).
+    Não permite declarar novas subrotinas dentro dele.
     bloco_subrot : secao_decl_vars comando_composto
     '''
     decl_vars: List[DeclVariaveis]
@@ -76,7 +75,6 @@ class Parametro(Declaracao):
     '''
     ids: List[str]
     tipo: str
-    # Rascal é pass-by-value por padrão, mas se houvesse 'var', marcaríamos aqui.
 
 class DeclSubrotina(Declaracao):
     '''
@@ -104,7 +102,6 @@ class DeclFuncao(DeclSubrotina):
     bloco: BlocoSubrotina
 
 # Comandos
-
 @dataclass
 class ComandoComposto(Comando):
     '''
@@ -116,7 +113,6 @@ class ComandoComposto(Comando):
 class CmdAtribuicao(Comando):
     '''
     id := expressao
-    Obs: Em Pascal/Rascal, atribuição é um comando, não expressão.
     '''
     id: str
     expressao: Expressao
@@ -125,7 +121,7 @@ class CmdAtribuicao(Comando):
 class CmdChamadaProcedimento(Comando):
     '''
     Ex: LerDados(x);
-    Diferente de função, este não retorna valor e é usado isoladamente.
+    Diferente de função, este não retorna valor
     '''
     id: str
     argumentos: List[Expressao]
@@ -150,7 +146,7 @@ class CmdWhile(Comando):
 @dataclass
 class CmdRead(Comando):
     '''
-    read(x, y) - Recebe lista de Identificadores (strings)
+    read(x, y) - Recebe lista de Identificadores
     '''
     ids: List[str] 
 
@@ -162,7 +158,6 @@ class CmdWrite(Comando):
     expressoes: List[Expressao]
 
 # Expressões
-
 @dataclass
 class ExpBinaria(Expressao):
     '''

@@ -144,7 +144,6 @@ def p_bloco_subrot(p):
     p[0] = ast.BlocoSubrotina(decl_vars=p[1], comando_composto=p[2])
 
 # Comandos
-
 def p_comando_composto(p):
     '''
     comando_composto : BEGIN lista_comandos END

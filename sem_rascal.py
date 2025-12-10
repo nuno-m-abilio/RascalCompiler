@@ -59,7 +59,6 @@ class VerificadorSemantico(Visitador):
         self.tem_erro = True
 
     # Programa e Blocos
-
     def visita_Programa(self, no: ast.Programa):
         simbolo_prog = Simbolo(nome=no.id, categoria=Categoria.PROGRAM)
         self.ts.instala(simbolo_prog)
@@ -73,7 +72,6 @@ class VerificadorSemantico(Visitador):
         self.visita(no.comando_composto)
 
     # Declarações
-
     def visita_DeclVariaveis(self, no: ast.DeclVariaveis):
         tipo_real = get_tipo_by_name(no.tipo)
         if tipo_real is None:
@@ -106,7 +104,7 @@ class VerificadorSemantico(Visitador):
                 t = get_tipo_by_name(param.tipo)
                 for pid in param.ids:
                     s_param = Simbolo(nome=pid, categoria=Categoria.PARAM, tipo=t)
-                    # Forçamos o deslocamento manual (bypass no instala)
+                    # Forçamos o deslocamento manual
                     s_param.nivel_lexico = self.ts.nivel_atual
                     s_param.deslocamento = offset_atual
                     
@@ -185,7 +183,6 @@ class VerificadorSemantico(Visitador):
         self.visita(no.comando_composto)
 
     # Comandos e Expressões (Anotando Símbolos na AST)
-
     def visita_CmdAtribuicao(self, no: ast.CmdAtribuicao):
         self.visita(no.expressao)
         

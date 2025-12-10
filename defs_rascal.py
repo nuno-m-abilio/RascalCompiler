@@ -24,7 +24,6 @@ def get_tipo_by_name(name: str) -> Tipo | None:
     return None
 
 # Tabela de Símbolos
-
 class Categoria:
     VAR = 'var'
     PARAM = 'param'
@@ -41,7 +40,7 @@ class Simbolo:
     # Para funções e procedimentos: lista de tipos dos parâmetros
     params_tipos: List[Tipo] = field(default_factory=list)
     
-    # Para geração de código (futuro)
+    # Para geração de código
     nivel_lexico: int = 0
     deslocamento: int = 0
     rotulo: str = ""
@@ -52,14 +51,12 @@ class Visitador:
         if no is None:
             return
         
-        # Se for uma lista (ex: lista de comandos), visita cada item
+        # Se for uma lista, visita cada item
         if isinstance(no, list):
             for item in no:
                 self.visita(item)
             return
 
-        # Descobre o nome da classe do nó (ex: Programa, CmdIf)
-        # e tenta chamar o método visita_NomeDaClasse
         nome_metodo = f'visita_{type(no).__name__}'
         visitor = getattr(self, nome_metodo, self.visita_padrao)
         return visitor(no)
