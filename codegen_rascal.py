@@ -67,7 +67,7 @@ class GeradorCodigoMEPA(Visitador):
 
     # Subrotinas
     
-    def _gera_subrotina(self, no):
+    def _gera_subrotina(self, no, tipo_decl):
         rotulo = self._novo_rotulo()
         self.rotulos_procs[no.simbolo.nome] = rotulo
         
